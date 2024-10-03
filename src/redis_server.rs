@@ -42,6 +42,7 @@ impl RedisServer {
                 Ok(_) => {
                     log::info!("Received: {}", buffer);
                     writer.write_all(buffer.as_bytes()).unwrap();
+                    writer.flush().unwrap();
                 }
                 Err(e) => {
                     log::error!("Failed to read from stream: {:?}", e);
@@ -50,5 +51,4 @@ impl RedisServer {
             }
         }
     }
-
 }
