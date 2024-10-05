@@ -2,6 +2,9 @@ use std::thread;
 use clap::Parser;
 
 mod redis_server;
+mod parser;
+mod commands;
+mod storage;
 
 #[derive(Parser)]
 struct Cli {
