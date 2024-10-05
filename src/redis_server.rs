@@ -1,5 +1,5 @@
-use std::fmt::Display;
 use crate::parser::CommandParser;
+use std::fmt::Display;
 use std::io::{BufRead, BufReader, BufWriter, Error, Write};
 use std::net::{TcpListener, TcpStream};
 
@@ -60,7 +60,6 @@ impl RedisServer {
                             writer.flush().unwrap();
                         }
                     }
-
                 }
                 Err(e) => {
                     log::error!("Failed to read from stream: {:?}", e);
