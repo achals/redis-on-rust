@@ -1,4 +1,3 @@
-use super::super::storage::Storage;
 use super::Command;
 use std::error::Error;
 use std::sync::Arc;

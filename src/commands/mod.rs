@@ -1,6 +1,5 @@
 pub mod hello;
 
-use super::storage::Storage;
 use std::error::Error;
 use std::fmt;
 
