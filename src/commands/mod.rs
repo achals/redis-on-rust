@@ -1,11 +1,11 @@
 pub mod hello;
 
+use super::storage::Storage;
 use std::error::Error;
 use std::fmt;
-use super::storage::Storage;
 
 pub trait Command {
-    fn execute(&self, command: String, storage: &mut dyn Storage) -> Result<&str, Box<dyn Error>>;
+    fn execute(&self, command: String) -> Result<&str, Box<dyn Error>>;
 }
 
 pub struct CommandExecutionError {

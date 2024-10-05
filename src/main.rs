@@ -1,9 +1,9 @@
-use std::thread;
 use clap::Parser;
+use std::thread;
 
-mod redis_server;
-mod parser;
 mod commands;
+mod parser;
+mod redis_server;
 mod storage;
 
 #[derive(Parser)]
@@ -12,7 +12,6 @@ struct Cli {
     #[clap(short, long, default_value_t = 9000)]
     port: u16,
 }
-
 
 fn main() {
     let cli_args = Cli::parse();
@@ -26,6 +25,4 @@ fn main() {
     });
 
     t.join().unwrap();
-
-
 }
