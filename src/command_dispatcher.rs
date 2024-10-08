@@ -4,7 +4,7 @@ use std::error::Error;
 use std::fmt;
 use std::sync::Arc;
 
-pub struct CommandParser {
+pub struct CommandDispatcher {
     command_prefixes: Vec<(String, Arc<dyn Command + Send + Sync>)>,
 }
 
@@ -26,14 +26,14 @@ impl fmt::Debug for CommandError {
 
 impl Error for CommandError {}
 
-impl CommandParser {
-    pub fn new() -> Box<CommandParser> {
-        Box::new(CommandParser {
+impl CommandDispatcher {
+    pub fn new() -> Box<CommandDispatcher> {
+        Box::new(CommandDispatcher {
             command_prefixes: vec![("HELLO".to_string(), HelloCommand::new())],
         })
     }
 
-    pub(crate) fn parse(&self, command: &str) -> Result<Arc<dyn Command>, Box<dyn Error>> {
+    pub(crate) fn dispatch(&self, command: &str) -> Result<Arc<dyn Command>, Box<dyn Error>> {
         let mut parts = command.split_whitespace();
         let command_name = parts.next().ok_or("Empty Command")?;
 

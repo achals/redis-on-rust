@@ -1,17 +1,18 @@
-use crate::parser::CommandParser;
+use crate::command_dispatcher::CommandDispatcher;
+use crate::types::lib::Parser;
 use std::io::{BufRead, BufReader, BufWriter, Error, Write};
 use std::net::{TcpListener, TcpStream};
 
 pub struct RedisServer {
     tcp_listener: TcpListener,
-    parser: Box<CommandParser>,
+    dispatcher: Box<CommandDispatcher>,
 }
 
 impl RedisServer {
     pub fn new(port: u16) -> RedisServer {
         RedisServer {
             tcp_listener: TcpListener::bind(format!("127.0.0.1:{}", port)).unwrap(),
-            parser: CommandParser::new(),
+            dispatcher: CommandDispatcher::new(),
         }
     }
 
@@ -44,7 +45,17 @@ impl RedisServer {
                 }
                 Ok(_) => {
                     log::info!("Received: {}", buffer);
-                    let command_result = self.parser.parse(&buffer);
+                    let mut parser = Parser::new(buffer.clone());
+                    let parsed = parser.parse();
+                    match parsed {
+                        Ok(value) => {
+                            log::info!("Parsed: {:?}", value);
+                        }
+                        Err(e) => {
+                            log::error!("Failed to parse: {:?}", e);
+                        }
+                    }
+                    let command_result = self.dispatcher.dispatch(&buffer);
                     match command_result {
                         Ok(command) => {
                             let result = command.execute(buffer);

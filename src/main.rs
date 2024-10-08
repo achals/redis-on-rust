@@ -1,10 +1,11 @@
 use clap::Parser;
 use std::thread;
 
+mod command_dispatcher;
 mod commands;
-mod parser;
 mod redis_server;
 mod storage;
+mod types;
 
 #[derive(Parser)]
 struct Cli {
