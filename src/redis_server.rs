@@ -50,26 +50,26 @@ impl RedisServer {
                     match parsed {
                         Ok(value) => {
                             log::info!("Parsed: {:?}", value);
-                        }
-                        Err(e) => {
-                            log::error!("Failed to parse: {:?}", e);
-                            writer.write_all(b"-ERR ").unwrap();
-                            writer.write_all(e.as_bytes()).unwrap();
-                            writer.flush().unwrap();
-                        }
-                    }
-                    let command_result = self.dispatcher.dispatch(&buffer);
-                    match command_result {
-                        Ok(command) => {
-                            let result = command.execute(buffer);
-                            match result {
-                                Ok(response) => {
-                                    log::debug!("Sending: {}", response);
-                                    writer.write_all(response.as_bytes()).unwrap();
-                                    writer.flush().unwrap();
+                            let command_result = self.dispatcher.dispatch(value);
+                            match command_result {
+                                Ok(command) => {
+                                    let result = command.execute(buffer);
+                                    match result {
+                                        Ok(response) => {
+                                            log::debug!("Sending: {}", response);
+                                            writer.write_all(response.as_bytes()).unwrap();
+                                            writer.flush().unwrap();
+                                        }
+                                        Err(e) => {
+                                            log::error!("Failed to execute command: {:?}", e);
+                                            let error_message = format!("Error: {}\r\n", e);
+                                            writer.write_all(error_message.as_bytes()).unwrap();
+                                            writer.flush().unwrap();
+                                        }
+                                    }
                                 }
                                 Err(e) => {
-                                    log::error!("Failed to execute command: {:?}", e);
+                                    log::error!("Failed to parse command: {:?}", e);
                                     let error_message = format!("Error: {}\r\n", e);
                                     writer.write_all(error_message.as_bytes()).unwrap();
                                     writer.flush().unwrap();
@@ -77,9 +77,9 @@ impl RedisServer {
                             }
                         }
                         Err(e) => {
-                            log::error!("Failed to parse command: {:?}", e);
-                            let error_message = format!("Error: {}\r\n", e);
-                            writer.write_all(error_message.as_bytes()).unwrap();
+                            log::error!("Failed to parse: {:?}", e);
+                            writer.write_all(b"-ERR ").unwrap();
+                            writer.write_all(e.as_bytes()).unwrap();
                             writer.flush().unwrap();
                         }
                     }

@@ -1,5 +1,6 @@
 use super::commands::Command;
 use crate::commands::hello::HelloCommand;
+use crate::types::lib::RequestPrimitive;
 use std::error::Error;
 use std::fmt;
 use std::sync::Arc;
@@ -33,10 +34,18 @@ impl CommandDispatcher {
         })
     }
 
-    pub(crate) fn dispatch(&self, command: &str) -> Result<Arc<dyn Command>, Box<dyn Error>> {
-        let mut parts = command.split_whitespace();
-        let command_name = parts.next().ok_or("Empty Command")?;
-
+    pub(crate) fn dispatch(
+        &self,
+        command: RequestPrimitive,
+    ) -> Result<Arc<dyn Command>, Box<dyn Error>> {
+        let command_name = match command {
+            RequestPrimitive::BulkString(s) => s,
+            _ => {
+                return Err(Box::new(CommandError {
+                    message: "Invalid command".to_string(),
+                }))
+            }
+        };
         for (prefix, command) in &self.command_prefixes {
             if command_name.to_uppercase().eq(prefix) {
                 return Ok(command.clone());
