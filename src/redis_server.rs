@@ -53,6 +53,9 @@ impl RedisServer {
                         }
                         Err(e) => {
                             log::error!("Failed to parse: {:?}", e);
+                            writer.write_all(b"-ERR ").unwrap();
+                            writer.write_all(e.as_bytes()).unwrap();
+                            writer.flush().unwrap();
                         }
                     }
                     let command_result = self.dispatcher.dispatch(&buffer);

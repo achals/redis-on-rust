@@ -1,12 +1,12 @@
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct Array {
-    pub elements: Vec<Value>,
+    pub elements: Vec<RequestPrimitive>,
 }
 
 #[derive(Debug)]
 #[allow(dead_code)]
-pub enum Value {
+pub enum RequestPrimitive {
     Integer(i64),
     BulkString(String),
     Array(Array),
@@ -22,18 +22,20 @@ impl Parser {
         Parser { buffer: string }
     }
 
-    pub fn parse(&mut self) -> Result<Value, String> {
+    pub fn parse(&mut self) -> Result<RequestPrimitive, String> {
         let count = self.buffer.split_whitespace().count();
         if count == 0 {
             return Err("Empty Command".to_string());
         }
         let first_char = self.buffer.chars().next().unwrap();
         match first_char {
-            '+' => Ok(Value::BulkString(self.buffer.split_off(1).clone())),
-            '-' => Ok(Value::Error(self.buffer.split_off(1).clone())),
+            '+' => Ok(RequestPrimitive::BulkString(
+                self.buffer.split_off(1).clone(),
+            )),
+            '-' => Ok(RequestPrimitive::Error(self.buffer.split_off(1).clone())),
             ':' | '$' => {
                 let number = self.buffer[1..].parse::<i64>().unwrap();
-                Ok(Value::Integer(number))
+                Ok(RequestPrimitive::Integer(number))
             }
             '*' => {
                 let mut elements = Vec::new();
@@ -44,22 +46,22 @@ impl Parser {
                     let value = self.parse_part(part)?;
                     elements.push(value);
                 }
-                Ok(Value::Array(Array { elements }))
+                Ok(RequestPrimitive::Array(Array { elements }))
             }
             _ => Err(format!("Unknown Command: {}", self.buffer)),
         }
     }
 
-    pub fn parse_part(&self, part: &str) -> Result<Value, String> {
+    pub fn parse_part(&self, part: &str) -> Result<RequestPrimitive, String> {
         let first_char = part.chars().next().unwrap();
         match first_char {
-            '+' => Ok(Value::BulkString(part.to_string().split_off(1))),
-            '-' => Ok(Value::Error(part.to_string().split_off(1))),
+            '+' => Ok(RequestPrimitive::BulkString(part.to_string().split_off(1))),
+            '-' => Ok(RequestPrimitive::Error(part.to_string().split_off(1))),
             ':' | '$' => {
                 let number = part[1..].parse::<i64>().unwrap();
-                Ok(Value::Integer(number))
+                Ok(RequestPrimitive::Integer(number))
             }
-            _ => Ok(Value::BulkString(part.to_string())),
+            _ => Ok(RequestPrimitive::BulkString(part.to_string())),
         }
     }
 }
