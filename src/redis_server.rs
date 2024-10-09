@@ -42,35 +42,39 @@ impl RedisServer {
             match parsed {
                 Ok(value) => {
                     log::info!("Parsed: {:?}", value);
-                    let commands = match value {
-                        crate::types::lib::RequestPrimitive::Array(a) => a.elements,
+                    let command_prefixes = match value {
+                        crate::types::lib::RequestPrimitive::Array(a) => {
+                            if a.elements.len() == 1 || a.elements.len() == 2 {
+                                a.elements
+                            } else {
+                                a.elements[0..2].to_vec()
+                            }
+                        }
                         _ => vec![value],
                     };
-                    for command in commands {
-                        let command_result = self.dispatcher.dispatch(command);
-                        match command_result {
-                            Ok(command) => {
-                                let result = command.execute(" ".to_string());
-                                match result {
-                                    Ok(response) => {
-                                        log::debug!("Sending: {}", response);
-                                        writer.write_all(response.as_bytes()).unwrap();
-                                        writer.flush().unwrap();
-                                    }
-                                    Err(e) => {
-                                        log::error!("Failed to execute command: {:?}", e);
-                                        let error_message = format!("Error: {}\r\n", e);
-                                        writer.write_all(error_message.as_bytes()).unwrap();
-                                        writer.flush().unwrap();
-                                    }
+                    let command_result = self.dispatcher.dispatch(command_prefixes);
+                    match command_result {
+                        Ok(command) => {
+                            let result = command.execute(" ".to_string());
+                            match result {
+                                Ok(response) => {
+                                    log::debug!("Sending: {}", response);
+                                    writer.write_all(response.as_bytes()).unwrap();
+                                    writer.flush().unwrap();
+                                }
+                                Err(e) => {
+                                    log::error!("Failed to execute command: {:?}", e);
+                                    let error_message = format!("Error: {}\r\n", e);
+                                    writer.write_all(error_message.as_bytes()).unwrap();
+                                    writer.flush().unwrap();
                                 }
                             }
-                            Err(e) => {
-                                log::error!("Failed to find command: {:?}", e);
-                                let error_message = format!("Error: {}\r\n", e);
-                                writer.write_all(error_message.as_bytes()).unwrap();
-                                writer.flush().unwrap();
-                            }
+                        }
+                        Err(e) => {
+                            log::error!("Failed to find command: {:?}", e);
+                            let error_message = format!("Error: {}\r\n", e);
+                            writer.write_all(error_message.as_bytes()).unwrap();
+                            writer.flush().unwrap();
                         }
                     }
                 }
