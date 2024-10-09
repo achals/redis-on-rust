@@ -1,6 +1,7 @@
 use crate::command_dispatcher::CommandDispatcher;
-use crate::types::lib::Parser;
-use std::io::{BufReader, BufWriter, Error, Write};
+use crate::types::lib::RESPType;
+use crate::types::lib::{Parser, Writer};
+use std::io::{BufReader, BufWriter, Error};
 use std::net::{TcpListener, TcpStream};
 
 pub struct RedisServer {
@@ -33,10 +34,8 @@ impl RedisServer {
     }
 
     fn handle_connection(&self, stream: TcpStream) {
-        let reader = BufReader::new(&stream);
-        let mut writer = BufWriter::new(&stream);
-
-        let mut parser = Parser::new(reader);
+        let mut parser = Parser::new(BufReader::new(&stream));
+        let mut writer = Writer::new(BufWriter::new(&stream));
         loop {
             let parsed = parser.next();
             match parsed {
@@ -52,37 +51,34 @@ impl RedisServer {
                         }
                         _ => vec![value],
                     };
-                    let command_result = self.dispatcher.dispatch(command_prefixes);
+                    let command_result = self.dispatcher.dispatch(command_prefixes.clone());
                     match command_result {
                         Ok(command) => {
-                            let result = command.execute(" ".to_string());
+                            let result = command.execute(command_prefixes[0].clone());
                             match result {
                                 Ok(response) => {
-                                    log::debug!("Sending: {}", response);
-                                    writer.write_all(response.as_bytes()).unwrap();
-                                    writer.flush().unwrap();
+                                    writer.write(response).unwrap();
                                 }
                                 Err(e) => {
                                     log::error!("Failed to execute command: {:?}", e);
-                                    let error_message = format!("Error: {}\r\n", e);
-                                    writer.write_all(error_message.as_bytes()).unwrap();
-                                    writer.flush().unwrap();
+
+                                    let error_resp = RESPType::Error(e.to_string());
+                                    writer.write(error_resp).unwrap();
                                 }
                             }
                         }
                         Err(e) => {
                             log::error!("Failed to find command: {:?}", e);
-                            let error_message = format!("Error: {}\r\n", e);
-                            writer.write_all(error_message.as_bytes()).unwrap();
-                            writer.flush().unwrap();
+
+                            let error_resp = RESPType::Error(e.to_string());
+                            writer.write(error_resp).unwrap();
                         }
                     }
                 }
                 Err(e) => {
                     log::error!("Failed to parse: {:?}", e);
-                    writer.write_all(b"-ERR ").unwrap();
-                    writer.write_all(e.as_bytes()).unwrap();
-                    writer.flush().unwrap();
+                    let error_resp = RESPType::Error(e.to_string());
+                    writer.write(error_resp).unwrap();
                 }
             }
         }

@@ -1,8 +1,8 @@
 use super::Command;
+use crate::types::lib;
+use crate::types::lib::RESPType;
 use std::error::Error;
 use std::sync::Arc;
-
-const RESPONSE: &str = "%3\r\n+server\r\n+redis-on-rust\r\n+version\r\n+0.0.1\r\n+proto\r\n:3\r\n";
 
 pub struct HelloCommand {}
 
@@ -13,7 +13,22 @@ impl HelloCommand {
 }
 
 impl Command for HelloCommand {
-    fn execute(&self, _: String) -> Result<&str, Box<dyn Error>> {
-        Ok(RESPONSE)
+    fn execute(&self, _: RESPType) -> Result<RESPType, Box<dyn Error>> {
+        Ok(RESPType::Map(lib::Map {
+            elements: vec![
+                (
+                    RESPType::BulkString("server".to_string()),
+                    RESPType::BulkString("redis-on-rust".to_string()),
+                ),
+                (
+                    RESPType::BulkString("version".to_string()),
+                    RESPType::BulkString("0.0.1".to_string()),
+                ),
+                (
+                    RESPType::BulkString("proto".to_string()),
+                    RESPType::Integer(3),
+                ),
+            ],
+        }))
     }
 }
