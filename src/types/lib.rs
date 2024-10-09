@@ -56,7 +56,8 @@ impl<R: Read> Parser<R> {
                 let number = buffer[1..].parse::<i64>().unwrap();
                 let mut nextpart = String::new();
                 self.buf_reader.read_line(&mut nextpart).unwrap();
-                assert_eq!(nextpart.trim().len(), number as usize);
+                nextpart = nextpart.trim().to_string();
+                assert_eq!(nextpart.len(), number as usize);
                 Ok(RequestPrimitive::BulkString(nextpart))
             }
             _ => Err(format!("Unknown Command: {}", buffer)),
