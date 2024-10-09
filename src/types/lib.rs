@@ -1,4 +1,4 @@
-use std::io::{BufRead, BufReader, Read};
+use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -81,5 +81,55 @@ impl<R: Read> Parser<R> {
             }
             _ => Err(format!("Unknown Command: {}", buffer)),
         }
+    }
+}
+
+pub struct Writer<W: Write> {
+    pub buf_writer: BufWriter<W>,
+}
+
+impl<W: Write> Writer<W> {
+    pub fn new(buf_writer: BufWriter<W>) -> Writer<W> {
+        Writer { buf_writer }
+    }
+
+    pub fn write(&mut self, value: RESPType) -> Result<(), String> {
+        match value {
+            RESPType::Integer(i) => {
+                self.buf_writer
+                    .write_all(format!(":{}\r\n", i).as_bytes())
+                    .unwrap();
+            }
+            RESPType::BulkString(s) => {
+                self.buf_writer
+                    .write_all(format!("+{}\r\n", s).as_bytes())
+                    .unwrap();
+            }
+            RESPType::Error(s) => {
+                self.buf_writer
+                    .write_all(format!("-ERR{}\r\n", s).as_bytes())
+                    .unwrap();
+            }
+            RESPType::Array(a) => {
+                self.buf_writer
+                    .write_all(format!("*{}\r\n", a.elements.len()).as_bytes())
+                    .unwrap();
+                for e in a.elements {
+                    self.write(e)?;
+                }
+            }
+            RESPType::Map(m) => {
+                self.buf_writer
+                    .write_all(format!("%{}\r\n", m.elements.len()).as_bytes())
+                    .unwrap();
+                for (k, v) in m.elements {
+                    self.write(k)?;
+                    self.write(v)?;
+                }
+            }
+        }
+
+        self.buf_writer.flush().unwrap();
+        Ok(())
     }
 }

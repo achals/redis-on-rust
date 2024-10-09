@@ -1,10 +1,11 @@
 pub mod hello;
 
+use crate::types::lib::RESPType;
 use std::error::Error;
 use std::fmt;
 
 pub trait Command {
-    fn execute(&self, command: String) -> Result<&str, Box<dyn Error>>;
+    fn execute(&self, command: RESPType) -> Result<RESPType, Box<dyn Error>>;
 }
 
 pub struct CommandExecutionError {
