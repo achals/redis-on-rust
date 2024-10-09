@@ -8,11 +8,18 @@ pub struct Array {
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
+pub struct Map {
+    pub elements: Vec<(RequestPrimitive, RequestPrimitive)>,
+}
+
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum RequestPrimitive {
     Integer(i64),
     BulkString(String),
     Array(Array),
     Error(String),
+    Map(Map),
 }
 
 pub struct Parser<R: Read> {
@@ -59,6 +66,18 @@ impl<R: Read> Parser<R> {
                 nextpart = nextpart.trim().to_string();
                 assert_eq!(nextpart.len(), number as usize);
                 Ok(RequestPrimitive::BulkString(nextpart))
+            }
+            '%' => {
+                let number = buffer[1..].parse::<i64>().unwrap();
+                let mut elements = Vec::new();
+                for _ in 0..number {
+                    let key = self.next()?;
+                    let value = self.next()?;
+                    log::debug!("Key: {:?}, Value: {:?}", key, value);
+                    elements.push((key, value));
+                }
+
+                Ok(RequestPrimitive::Map(Map { elements }))
             }
             _ => Err(format!("Unknown Command: {}", buffer)),
         }
