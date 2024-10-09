@@ -13,14 +13,14 @@ mod tests {
     }
 
     #[test]
-    fn parse_bulk_string() {
+    fn parse_simple_string() {
         let mut parser = Parser::new(BufReader::new(StringReader::new("+Hello")));
         let value = parser.next().unwrap();
         match value {
-            crate::types::lib::RESPType::BulkString(s) => {
+            crate::types::lib::RESPType::SimpleString(s) => {
                 assert_eq!(s, "Hello");
             }
-            _ => panic!("Expected BulkString"),
+            _ => panic!("Expected SimpleString"),
         }
     }
 
@@ -56,16 +56,16 @@ mod tests {
             crate::types::lib::RESPType::Array(a) => {
                 assert_eq!(a.elements.len(), 2);
                 match &a.elements[0] {
-                    crate::types::lib::RESPType::BulkString(s) => {
+                    crate::types::lib::RESPType::SimpleString(s) => {
                         assert_eq!(s, "Hello");
                     }
-                    _ => panic!("Expected BulkString"),
+                    _ => panic!("Expected SimpleString"),
                 }
                 match &a.elements[1] {
-                    crate::types::lib::RESPType::BulkString(s) => {
+                    crate::types::lib::RESPType::SimpleString(s) => {
                         assert_eq!(s, "World");
                     }
-                    _ => panic!("Expected BulkString"),
+                    _ => panic!("Expected SimpleString"),
                 }
             }
             _ => panic!("Expected Array"),
@@ -87,10 +87,10 @@ mod tests {
                     _ => panic!("Expected BulkString"),
                 }
                 match &a.elements[1] {
-                    crate::types::lib::RESPType::BulkString(s) => {
+                    crate::types::lib::RESPType::SimpleString(s) => {
                         assert_eq!(s, "World");
                     }
-                    _ => panic!("Expected BulkString"),
+                    _ => panic!("Expected SimpleString"),
                 }
             }
             _ => panic!("Expected Array"),
