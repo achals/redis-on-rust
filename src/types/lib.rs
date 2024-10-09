@@ -1,12 +1,12 @@
 use std::io::{BufRead, BufReader, Read};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct Array {
     pub elements: Vec<RequestPrimitive>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub enum RequestPrimitive {
     Integer(i64),

@@ -34,26 +34,42 @@ impl CommandDispatcher {
         })
     }
 
+    fn extract_commands(command: Vec<RequestPrimitive>) -> Vec<String> {
+        let mut bulk_string_prefixes = Vec::new();
+        for c in command {
+            match c {
+                RequestPrimitive::BulkString(s) => {
+                    bulk_string_prefixes.push(s);
+                }
+                _ => break,
+            }
+        }
+
+        if bulk_string_prefixes.len() == 1 {
+            bulk_string_prefixes
+        } else {
+            vec![
+                bulk_string_prefixes[0].clone(),
+                format!("{} {}", bulk_string_prefixes[0], bulk_string_prefixes[1]),
+            ]
+        }
+    }
+
     pub(crate) fn dispatch(
         &self,
-        command: RequestPrimitive,
+        command: Vec<RequestPrimitive>,
     ) -> Result<Arc<dyn Command>, Box<dyn Error>> {
-        let command_name = match command {
-            RequestPrimitive::BulkString(s) => s,
-            _ => {
-                return Err(Box::new(CommandError {
-                    message: "Invalid command".to_string(),
-                }))
-            }
-        };
-        for (prefix, command) in &self.command_prefixes {
-            if command_name.to_uppercase().eq(prefix) {
-                return Ok(command.clone());
+        let command_choices = Self::extract_commands(command);
+        for command_choice in command_choices.clone() {
+            for (prefix, command) in &self.command_prefixes {
+                if command_choice.to_uppercase().eq(prefix) {
+                    return Ok(command.clone());
+                }
             }
         }
 
         Err(Box::new(CommandError {
-            message: format!("Unknown command: {}", command_name),
+            message: format!("Unknown command: {}", command_choices.last().unwrap()),
         }))
     }
 }
