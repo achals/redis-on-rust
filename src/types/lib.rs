@@ -3,18 +3,18 @@ use std::io::{BufRead, BufReader, Read};
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct Array {
-    pub elements: Vec<RequestPrimitive>,
+    pub elements: Vec<RESPType>,
 }
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct Map {
-    pub elements: Vec<(RequestPrimitive, RequestPrimitive)>,
+    pub elements: Vec<(RESPType, RESPType)>,
 }
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub enum RequestPrimitive {
+pub enum RESPType {
     Integer(i64),
     BulkString(String),
     Array(Array),
@@ -31,7 +31,7 @@ impl<R: Read> Parser<R> {
         Parser { buf_reader }
     }
 
-    pub fn next(&mut self) -> Result<RequestPrimitive, String> {
+    pub fn next(&mut self) -> Result<RESPType, String> {
         let mut buffer = String::new();
         if self.buf_reader.read_line(&mut buffer).unwrap() == 0 {
             return Err("Connection closed".to_string());
@@ -44,11 +44,11 @@ impl<R: Read> Parser<R> {
         }
         let first_char = buffer.chars().next().unwrap();
         match first_char {
-            '+' => Ok(RequestPrimitive::BulkString(buffer.split_off(1))),
-            '-' => Ok(RequestPrimitive::Error(buffer.split_off(1).clone())),
+            '+' => Ok(RESPType::BulkString(buffer.split_off(1))),
+            '-' => Ok(RESPType::Error(buffer.split_off(1).clone())),
             ':' => {
                 let number = buffer[1..].parse::<i64>().unwrap();
-                Ok(RequestPrimitive::Integer(number))
+                Ok(RESPType::Integer(number))
             }
             '*' => {
                 let mut elements = Vec::new();
@@ -57,7 +57,7 @@ impl<R: Read> Parser<R> {
                     elements.push(self.next()?);
                 }
 
-                Ok(RequestPrimitive::Array(Array { elements }))
+                Ok(RESPType::Array(Array { elements }))
             }
             '$' => {
                 let number = buffer[1..].parse::<i64>().unwrap();
@@ -65,7 +65,7 @@ impl<R: Read> Parser<R> {
                 self.buf_reader.read_line(&mut nextpart).unwrap();
                 nextpart = nextpart.trim().to_string();
                 assert_eq!(nextpart.len(), number as usize);
-                Ok(RequestPrimitive::BulkString(nextpart))
+                Ok(RESPType::BulkString(nextpart))
             }
             '%' => {
                 let number = buffer[1..].parse::<i64>().unwrap();
@@ -77,7 +77,7 @@ impl<R: Read> Parser<R> {
                     elements.push((key, value));
                 }
 
-                Ok(RequestPrimitive::Map(Map { elements }))
+                Ok(RESPType::Map(Map { elements }))
             }
             _ => Err(format!("Unknown Command: {}", buffer)),
         }

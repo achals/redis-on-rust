@@ -1,6 +1,6 @@
 use super::commands::Command;
 use crate::commands::hello::HelloCommand;
-use crate::types::lib::RequestPrimitive;
+use crate::types::lib::RESPType;
 use std::error::Error;
 use std::fmt;
 use std::sync::Arc;
@@ -34,11 +34,11 @@ impl CommandDispatcher {
         })
     }
 
-    fn extract_commands(command: Vec<RequestPrimitive>) -> Vec<String> {
+    fn extract_commands(command: Vec<RESPType>) -> Vec<String> {
         let mut bulk_string_prefixes = Vec::new();
         for c in command {
             match c {
-                RequestPrimitive::BulkString(s) => {
+                RESPType::BulkString(s) => {
                     bulk_string_prefixes.push(s);
                 }
                 _ => break,
@@ -57,7 +57,7 @@ impl CommandDispatcher {
 
     pub(crate) fn dispatch(
         &self,
-        command: Vec<RequestPrimitive>,
+        command: Vec<RESPType>,
     ) -> Result<Arc<dyn Command>, Box<dyn Error>> {
         let command_choices = Self::extract_commands(command);
         for command_choice in command_choices.clone() {

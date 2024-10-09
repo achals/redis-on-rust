@@ -43,7 +43,7 @@ impl RedisServer {
                 Ok(value) => {
                     log::info!("Parsed: {:?}", value);
                     let command_prefixes = match value {
-                        crate::types::lib::RequestPrimitive::Array(a) => {
+                        crate::types::lib::RESPType::Array(a) => {
                             if a.elements.len() == 1 || a.elements.len() == 2 {
                                 a.elements
                             } else {
