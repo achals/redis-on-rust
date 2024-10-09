@@ -81,6 +81,7 @@ impl RedisServer {
                     writer.write(error_resp).unwrap();
                 }
             }
+            writer.flush().unwrap();
         }
     }
 }

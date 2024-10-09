@@ -63,6 +63,7 @@ impl CommandDispatcher {
         for command_choice in command_choices.clone() {
             for (prefix, command) in &self.command_prefixes {
                 if command_choice.to_uppercase().eq(prefix) {
+                    log::info!("Dispatching command: {}", command_choice);
                     return Ok(command.clone());
                 }
             }

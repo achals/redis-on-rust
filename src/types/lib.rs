@@ -16,6 +16,7 @@ pub struct Map {
 #[allow(dead_code)]
 pub enum RESPType {
     Integer(i64),
+    SimpleString(String),
     BulkString(String),
     Array(Array),
     Error(String),
@@ -44,7 +45,7 @@ impl<R: Read> Parser<R> {
         }
         let first_char = buffer.chars().next().unwrap();
         match first_char {
-            '+' => Ok(RESPType::BulkString(buffer.split_off(1))),
+            '+' => Ok(RESPType::SimpleString(buffer.split_off(1))),
             '-' => Ok(RESPType::Error(buffer.split_off(1).clone())),
             ':' => {
                 let number = buffer[1..].parse::<i64>().unwrap();
@@ -100,9 +101,14 @@ impl<W: Write> Writer<W> {
                     .write_all(format!(":{}\r\n", i).as_bytes())
                     .unwrap();
             }
-            RESPType::BulkString(s) => {
+            RESPType::SimpleString(s) => {
                 self.buf_writer
                     .write_all(format!("+{}\r\n", s).as_bytes())
+                    .unwrap();
+            }
+            RESPType::BulkString(s) => {
+                self.buf_writer
+                    .write_all(format!("${}\r\n{}\r\n", s.len(), s).as_bytes())
                     .unwrap();
             }
             RESPType::Error(s) => {
@@ -128,6 +134,13 @@ impl<W: Write> Writer<W> {
                 }
             }
         }
+
+        Ok(())
+    }
+
+    pub fn flush(&mut self) -> Result<(), String> {
+        let buf_str = String::from_utf8_lossy(self.buf_writer.buffer());
+        log::debug!("Writing: {:?}", buf_str);
 
         self.buf_writer.flush().unwrap();
         Ok(())
