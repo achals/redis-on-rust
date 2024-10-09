@@ -17,7 +17,7 @@ mod tests {
         let mut parser = Parser::new(BufReader::new(StringReader::new("+Hello")));
         let value = parser.next().unwrap();
         match value {
-            crate::types::lib::RequestPrimitive::BulkString(s) => {
+            crate::types::lib::RESPType::BulkString(s) => {
                 assert_eq!(s, "Hello");
             }
             _ => panic!("Expected BulkString"),
@@ -29,7 +29,7 @@ mod tests {
         let mut parser = Parser::new(BufReader::new(StringReader::new("-Error")));
         let value = parser.next().unwrap();
         match value {
-            crate::types::lib::RequestPrimitive::Error(s) => {
+            crate::types::lib::RESPType::Error(s) => {
                 assert_eq!(s, "Error");
             }
             _ => panic!("Expected Error"),
@@ -41,7 +41,7 @@ mod tests {
         let mut parser = Parser::new(BufReader::new(StringReader::new(":123")));
         let value = parser.next().unwrap();
         match value {
-            crate::types::lib::RequestPrimitive::Integer(i) => {
+            crate::types::lib::RESPType::Integer(i) => {
                 assert_eq!(i, 123);
             }
             _ => panic!("Expected Integer"),
@@ -53,16 +53,16 @@ mod tests {
         let mut parser = Parser::new(BufReader::new(StringReader::new("*2\r\n+Hello\r\n+World")));
         let value = parser.next().unwrap();
         match value {
-            crate::types::lib::RequestPrimitive::Array(a) => {
+            crate::types::lib::RESPType::Array(a) => {
                 assert_eq!(a.elements.len(), 2);
                 match &a.elements[0] {
-                    crate::types::lib::RequestPrimitive::BulkString(s) => {
+                    crate::types::lib::RESPType::BulkString(s) => {
                         assert_eq!(s, "Hello");
                     }
                     _ => panic!("Expected BulkString"),
                 }
                 match &a.elements[1] {
-                    crate::types::lib::RequestPrimitive::BulkString(s) => {
+                    crate::types::lib::RESPType::BulkString(s) => {
                         assert_eq!(s, "World");
                     }
                     _ => panic!("Expected BulkString"),
@@ -78,16 +78,16 @@ mod tests {
         )));
         let value = parser.next().unwrap();
         match value {
-            crate::types::lib::RequestPrimitive::Array(a) => {
+            crate::types::lib::RESPType::Array(a) => {
                 assert_eq!(a.elements.len(), 2);
                 match &a.elements[0] {
-                    crate::types::lib::RequestPrimitive::BulkString(s) => {
+                    crate::types::lib::RESPType::BulkString(s) => {
                         assert_eq!(s, "Hello");
                     }
                     _ => panic!("Expected BulkString"),
                 }
                 match &a.elements[1] {
-                    crate::types::lib::RequestPrimitive::BulkString(s) => {
+                    crate::types::lib::RESPType::BulkString(s) => {
                         assert_eq!(s, "World");
                     }
                     _ => panic!("Expected BulkString"),
