@@ -1,6 +1,6 @@
 use crate::command_dispatcher::CommandDispatcher;
 use crate::types::lib::Parser;
-use std::io::{BufRead, BufReader, BufWriter, Error, Write};
+use std::io::{BufReader, BufWriter, Error, Write};
 use std::net::{TcpListener, TcpStream};
 
 pub struct RedisServer {
@@ -33,60 +33,52 @@ impl RedisServer {
     }
 
     fn handle_connection(&self, stream: TcpStream) {
-        let mut reader = BufReader::new(&stream);
+        let reader = BufReader::new(&stream);
         let mut writer = BufWriter::new(&stream);
 
+        let mut parser = Parser::new(reader);
         loop {
-            let mut buffer = String::new();
-            match reader.read_line(&mut buffer) {
-                Ok(0) => {
-                    log::info!("Connection closed");
-                    break;
-                }
-                Ok(_) => {
-                    log::info!("Received: {}", buffer);
-                    let mut parser = Parser::new(buffer.clone());
-                    let parsed = parser.parse();
-                    match parsed {
-                        Ok(value) => {
-                            log::info!("Parsed: {:?}", value);
-                        }
-                        Err(e) => {
-                            log::error!("Failed to parse: {:?}", e);
-                            writer.write_all(b"-ERR ").unwrap();
-                            writer.write_all(e.as_bytes()).unwrap();
-                            writer.flush().unwrap();
-                        }
-                    }
-                    let command_result = self.dispatcher.dispatch(&buffer);
-                    match command_result {
-                        Ok(command) => {
-                            let result = command.execute(buffer);
-                            match result {
-                                Ok(response) => {
-                                    log::debug!("Sending: {}", response);
-                                    writer.write_all(response.as_bytes()).unwrap();
-                                    writer.flush().unwrap();
-                                }
-                                Err(e) => {
-                                    log::error!("Failed to execute command: {:?}", e);
-                                    let error_message = format!("Error: {}\r\n", e);
-                                    writer.write_all(error_message.as_bytes()).unwrap();
-                                    writer.flush().unwrap();
+            let parsed = parser.next();
+            match parsed {
+                Ok(value) => {
+                    log::info!("Parsed: {:?}", value);
+                    let commands = match value {
+                        crate::types::lib::RequestPrimitive::Array(a) => a.elements,
+                        _ => vec![value],
+                    };
+                    for command in commands {
+                        let command_result = self.dispatcher.dispatch(command);
+                        match command_result {
+                            Ok(command) => {
+                                let result = command.execute(" ".to_string());
+                                match result {
+                                    Ok(response) => {
+                                        log::debug!("Sending: {}", response);
+                                        writer.write_all(response.as_bytes()).unwrap();
+                                        writer.flush().unwrap();
+                                    }
+                                    Err(e) => {
+                                        log::error!("Failed to execute command: {:?}", e);
+                                        let error_message = format!("Error: {}\r\n", e);
+                                        writer.write_all(error_message.as_bytes()).unwrap();
+                                        writer.flush().unwrap();
+                                    }
                                 }
                             }
-                        }
-                        Err(e) => {
-                            log::error!("Failed to parse command: {:?}", e);
-                            let error_message = format!("Error: {}\r\n", e);
-                            writer.write_all(error_message.as_bytes()).unwrap();
-                            writer.flush().unwrap();
+                            Err(e) => {
+                                log::error!("Failed to find command: {:?}", e);
+                                let error_message = format!("Error: {}\r\n", e);
+                                writer.write_all(error_message.as_bytes()).unwrap();
+                                writer.flush().unwrap();
+                            }
                         }
                     }
                 }
                 Err(e) => {
-                    log::error!("Failed to read from stream: {:?}", e);
-                    break;
+                    log::error!("Failed to parse: {:?}", e);
+                    writer.write_all(b"-ERR ").unwrap();
+                    writer.write_all(e.as_bytes()).unwrap();
+                    writer.flush().unwrap();
                 }
             }
         }

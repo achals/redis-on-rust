@@ -1,3 +1,5 @@
+use std::io::{BufRead, BufReader, Read};
+
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct Array {
@@ -13,55 +15,52 @@ pub enum RequestPrimitive {
     Error(String),
 }
 
-pub struct Parser {
-    pub buffer: String,
+pub struct Parser<R: Read> {
+    pub buf_reader: BufReader<R>,
 }
 
-impl Parser {
-    pub fn new(string: String) -> Parser {
-        Parser { buffer: string }
+impl<R: Read> Parser<R> {
+    pub fn new(buf_reader: BufReader<R>) -> Parser<R> {
+        Parser { buf_reader }
     }
 
-    pub fn parse(&mut self) -> Result<RequestPrimitive, String> {
-        let count = self.buffer.split_whitespace().count();
+    pub fn next(&mut self) -> Result<RequestPrimitive, String> {
+        let mut buffer = String::new();
+        if self.buf_reader.read_line(&mut buffer).unwrap() == 0 {
+            return Err("Connection closed".to_string());
+        }
+        buffer = buffer.trim().to_string();
+        let count = buffer.split_whitespace().count();
+        log::debug!("Read line: {}", buffer);
         if count == 0 {
             return Err("Empty Command".to_string());
         }
-        let first_char = self.buffer.chars().next().unwrap();
+        let first_char = buffer.chars().next().unwrap();
         match first_char {
-            '+' => Ok(RequestPrimitive::BulkString(
-                self.buffer.split_off(1).clone(),
-            )),
-            '-' => Ok(RequestPrimitive::Error(self.buffer.split_off(1).clone())),
-            ':' | '$' => {
-                let number = self.buffer[1..].parse::<i64>().unwrap();
+            '+' => Ok(RequestPrimitive::BulkString(buffer.split_off(1))),
+            '-' => Ok(RequestPrimitive::Error(buffer.split_off(1).clone())),
+            ':' => {
+                let number = buffer[1..].parse::<i64>().unwrap();
                 Ok(RequestPrimitive::Integer(number))
             }
             '*' => {
                 let mut elements = Vec::new();
-                let mut parts = self.buffer[1..].split_whitespace();
-                let array_length = parts.next().unwrap().parse::<i64>().unwrap();
-                log::info!("Array Length: {}", array_length);
-                for part in parts {
-                    let value = self.parse_part(part)?;
-                    elements.push(value);
+                let number = buffer[1..].trim().parse::<i64>().unwrap();
+                for _ in 0..number {
+                    elements.push(self.next()?);
                 }
+
                 Ok(RequestPrimitive::Array(Array { elements }))
             }
-            _ => Err(format!("Unknown Command: {}", self.buffer)),
-        }
-    }
-
-    pub fn parse_part(&self, part: &str) -> Result<RequestPrimitive, String> {
-        let first_char = part.chars().next().unwrap();
-        match first_char {
-            '+' => Ok(RequestPrimitive::BulkString(part.to_string().split_off(1))),
-            '-' => Ok(RequestPrimitive::Error(part.to_string().split_off(1))),
-            ':' | '$' => {
-                let number = part[1..].parse::<i64>().unwrap();
-                Ok(RequestPrimitive::Integer(number))
+            '$' => {
+                let number = buffer[1..].parse::<i64>().unwrap();
+                let mut nextpart = String::new();
+                self.buf_reader.read_line(&mut nextpart).unwrap();
+                nextpart = nextpart.trim().to_string();
+                assert_eq!(nextpart.len(), number as usize);
+                Ok(RequestPrimitive::BulkString(nextpart))
             }
-            _ => Ok(RequestPrimitive::BulkString(part.to_string())),
+            _ => Err(format!("Unknown Command: {}", buffer)),
         }
     }
 }
