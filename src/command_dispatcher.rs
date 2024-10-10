@@ -1,4 +1,5 @@
 use super::commands::Command;
+use crate::commands::command_meta::CommandMeta;
 use crate::commands::hello::HelloCommand;
 use crate::types::lib::RESPType;
 use std::error::Error;
@@ -30,7 +31,10 @@ impl Error for CommandError {}
 impl CommandDispatcher {
     pub fn new() -> Box<CommandDispatcher> {
         Box::new(CommandDispatcher {
-            command_prefixes: vec![("HELLO".to_string(), HelloCommand::new())],
+            command_prefixes: vec![
+                ("HELLO".to_string(), HelloCommand::new()),
+                ("COMMAND DOCS".to_string(), CommandMeta::new()),
+            ],
         })
     }
 
