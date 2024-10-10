@@ -38,11 +38,11 @@ impl RedisServer {
         let mut writer = Writer::new(BufWriter::new(&stream));
         loop {
             let parsed = parser.next();
-            match parsed {
+            let response = match parsed {
                 Ok(value) => {
                     log::info!("Parsed: {:?}", value);
                     let command_prefixes = match value {
-                        crate::types::lib::RESPType::Array(a) => {
+                        RESPType::Array(a) => {
                             if a.elements.len() == 1 || a.elements.len() == 2 {
                                 a.elements
                             } else {
@@ -56,14 +56,12 @@ impl RedisServer {
                         Ok(command) => {
                             let result = command.execute(command_prefixes[0].clone());
                             match result {
-                                Ok(response) => {
-                                    writer.write(response).unwrap();
-                                }
+                                Ok(response) => writer.write(response),
                                 Err(e) => {
                                     log::error!("Failed to execute command: {:?}", e);
 
                                     let error_resp = RESPType::Error(e.to_string());
-                                    writer.write(error_resp).unwrap();
+                                    writer.write(error_resp)
                                 }
                             }
                         }
@@ -71,17 +69,26 @@ impl RedisServer {
                             log::error!("Failed to find command: {:?}", e);
 
                             let error_resp = RESPType::Error(e.to_string());
-                            writer.write(error_resp).unwrap();
+                            writer.write(error_resp)
                         }
                     }
                 }
                 Err(e) => {
-                    log::error!("Failed to parse: {:?}", e);
+                    if e == "Empty Command" {
+                        break;
+                    }
+                    log::debug!("Failed to parse: {:?}", e);
                     let error_resp = RESPType::Error(e.to_string());
-                    writer.write(error_resp).unwrap();
+                    writer.write(error_resp)
+                }
+            };
+            match response.and(writer.flush()) {
+                Ok(_) => (),
+                Err(e) => {
+                    log::error!("Failed to flush: {:?}", e);
+                    break;
                 }
             }
-            writer.flush().unwrap();
         }
     }
 }

@@ -34,13 +34,13 @@ impl<R: Read> Parser<R> {
 
     pub fn next(&mut self) -> Result<RESPType, String> {
         let mut buffer = String::new();
-        if self.buf_reader.read_line(&mut buffer).unwrap() == 0 {
-            return Err("Connection closed".to_string());
+        match self.buf_reader.read_line(&mut buffer) {
+            Ok(_) => (),
+            Err(e) => return Err(format!("Error reading line: {:?}", e)),
         }
         buffer = buffer.trim().to_string();
-        let count = buffer.split_whitespace().count();
         log::debug!("Read line: {}", buffer);
-        if count == 0 {
+        if buffer.is_empty() {
             return Err("Empty Command".to_string());
         }
         let first_char = buffer.chars().next().unwrap();
@@ -142,7 +142,10 @@ impl<W: Write> Writer<W> {
         let buf_str = String::from_utf8_lossy(self.buf_writer.buffer());
         log::debug!("Writing: {:?}", buf_str);
 
-        self.buf_writer.flush().unwrap();
+        match self.buf_writer.flush() {
+            Ok(_) => (),
+            Err(e) => return Err(format!("Error flushing: {:?}", e)),
+        }
         Ok(())
     }
 }
