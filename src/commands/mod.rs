@@ -1,4 +1,5 @@
-pub mod hello;
+pub(crate) mod command_meta;
+pub(crate) mod hello;
 
 use crate::types::lib::RESPType;
 use std::error::Error;
