@@ -1,8 +1,10 @@
 use crate::command_dispatcher::CommandDispatcher;
+use crate::storage::memory::InMemoryStorage;
 use crate::types::lib::RESPType;
 use crate::types::lib::{Parser, Writer};
 use std::io::{BufReader, BufWriter, Error};
 use std::net::{TcpListener, TcpStream};
+use std::sync::Arc;
 
 pub struct RedisServer {
     tcp_listener: TcpListener,
@@ -11,9 +13,10 @@ pub struct RedisServer {
 
 impl RedisServer {
     pub fn new(port: u16) -> RedisServer {
+        let storage = Arc::new(InMemoryStorage::new());
         RedisServer {
             tcp_listener: TcpListener::bind(format!("127.0.0.1:{}", port)).unwrap(),
-            dispatcher: CommandDispatcher::new(),
+            dispatcher: CommandDispatcher::new(storage),
         }
     }
 
