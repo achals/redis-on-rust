@@ -1,6 +1,7 @@
 use super::commands::Command;
 use crate::commands::command_meta::CommandMeta;
 use crate::commands::hello::HelloCommand;
+use crate::storage::Storage;
 use crate::types::lib::RESPType;
 use std::error::Error;
 use std::fmt;
@@ -29,7 +30,7 @@ impl fmt::Debug for CommandError {
 impl Error for CommandError {}
 
 impl CommandDispatcher {
-    pub fn new() -> Box<CommandDispatcher> {
+    pub fn new(_: Arc<dyn Storage>) -> Box<CommandDispatcher> {
         Box::new(CommandDispatcher {
             command_prefixes: vec![
                 ("HELLO".to_string(), HelloCommand::new()),
